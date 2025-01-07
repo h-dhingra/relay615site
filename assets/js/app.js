@@ -164,21 +164,21 @@
           {
             breakpoint: 992,
             settings: {
-              slidesToShow: 2,
+              slidesToShow: 3,
               centerPadding: "100px",
             },
           },
           {
             breakpoint: 768,
             settings: {
-              slidesToShow: 1,
+              slidesToShow: 3,
               centerPadding: "100px",
             },
           },
           {
             breakpoint: 575,
             settings: {
-              slidesToShow: 1,
+              slidesToShow: 2,
               centerPadding: "0px",
             },
           },
