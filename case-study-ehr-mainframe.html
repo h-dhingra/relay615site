@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>EMR-to-Mainframe Integration — Case Study — Relay615</title>
+  <meta name="description" content="How Relay615 delivered Phase 1 of a hybrid BizTalk and Azure integration architecture for a multi-hospital health system, connecting EMR systems with legacy mainframe and Db2 infrastructure." />
+  <link rel="icon" href="assets/images/favicon.ico" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+  <style>
+    /* ---- Case study specific styles ---- */
+    .cs-hero { background: var(--navy); padding: 80px 0 0; position: relative; overflow: hidden; }
+    .cs-hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,197,212,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,197,212,.04) 1px, transparent 1px);
+      background-size: 60px 60px;
+    }
+    .cs-hero-content { position: relative; z-index: 2; padding-bottom: 64px; }
+    .cs-hero h1 { color: var(--white); margin-bottom: 16px; }
+    .cs-hero .lead { color: rgba(255,255,255,.7); font-size: 1.1rem; max-width: 640px; margin-bottom: 36px; }
+    .cs-meta-bar {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      flex-wrap: wrap;
+      padding: 24px 0;
+      border-top: 1px solid rgba(255,255,255,.1);
+    }
+    .cs-meta-item { display: flex; flex-direction: column; gap: 4px; }
+    .cs-meta-label { font-size: .72rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--teal); }
+    .cs-meta-value { font-size: .9rem; color: rgba(255,255,255,.8); font-weight: 500; }
+
+    /* Tags strip below hero */
+    .cs-tags-strip { background: var(--navy-mid); padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .cs-tags-strip .tags { display: flex; gap: 8px; flex-wrap: wrap; }
+    .cs-tag {
+      font-size: .78rem; font-weight: 600; padding: 4px 12px;
+      border-radius: 100px;
+      background: rgba(0,197,212,.12); color: var(--teal);
+      border: 1px solid rgba(0,197,212,.25);
+    }
+
+    /* Body layout */
+    .cs-body { display: grid; grid-template-columns: 1fr 300px; gap: 64px; align-items: start; }
+    .cs-sidebar { position: sticky; top: 96px; }
+    .cs-sidebar-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      margin-bottom: 20px;
+    }
+    .cs-sidebar-card h4 { font-size: .875rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 16px; }
+    .cs-sidebar-row { display: flex; justify-content: space-between; align-items: flex-start; padding: 10px 0; border-bottom: 1px solid var(--border); font-size: .875rem; gap: 12px; }
+    .cs-sidebar-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .cs-sidebar-row span:first-child { color: var(--text-muted); flex-shrink: 0; }
+    .cs-sidebar-row span:last-child { color: var(--text); font-weight: 500; text-align: right; }
+    .cs-outcome-num { font-size: 1.75rem; font-weight: 800; color: var(--teal); display: block; line-height: 1; margin-bottom: 4px; }
+    .cs-outcome-label { font-size: .8rem; color: var(--text-muted); }
+
+    /* Content sections */
+    .cs-section { margin-bottom: 48px; }
+    .cs-section h2 { font-size: 1.4rem; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid var(--gray-light); }
+    .cs-section p { margin-bottom: 14px; }
+    .cs-section p:last-child { margin-bottom: 0; }
+
+    /* Challenge / Solution callout blocks */
+    .cs-callout {
+      background: var(--off-white);
+      border-left: 3px solid var(--teal);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 20px 24px;
+      margin: 24px 0;
+    }
+    .cs-callout p { margin: 0; font-size: .925rem; }
+
+    /* Architecture diagram container */
+    .cs-arch-diagram {
+      background: var(--navy);
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      margin: 28px 0;
+    }
+    .cs-arch-diagram img {
+      width: 100%;
+      display: block;
+    }
+    .cs-arch-caption {
+      padding: 12px 20px;
+      font-size: .8rem;
+      color: rgba(255,255,255,.5);
+      text-align: center;
+    }
+
+    /* Architecture step cards */
+    .cs-arch-steps { display: flex; flex-direction: column; gap: 16px; margin: 24px 0; }
+    .cs-arch-step {
+      display: grid;
+      grid-template-columns: 44px 1fr;
+      gap: 16px;
+      align-items: flex-start;
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+    .cs-step-num {
+      width: 44px;
+      height: 44px;
+      background: linear-gradient(135deg, var(--teal), var(--blue));
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: .85rem;
+      font-weight: 800;
+      color: var(--white);
+      flex-shrink: 0;
+    }
+    .cs-arch-step h4 { margin-bottom: 6px; font-size: .95rem; }
+    .cs-arch-step p  { font-size: .875rem; margin: 0; }
+    .cs-arch-step .cs-step-tech {
+      display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px;
+    }
+    .cs-step-pill {
+      font-size: .72rem; font-weight: 600; padding: 2px 8px;
+      border-radius: 100px;
+      background: rgba(0,197,212,.1); color: var(--teal);
+      border: 1px solid rgba(0,197,212,.2);
+    }
+    .cs-step-pill.dark { background: rgba(13,27,42,.06); color: var(--navy); border-color: rgba(13,27,42,.15); }
+
+    /* Result cards */
+    .cs-results-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin: 24px 0; }
+    .cs-result-card {
+      background: var(--white);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      text-align: center;
+    }
+    .cs-result-card .num { font-size: 1.6rem; font-weight: 800; color: var(--teal); display: block; margin-bottom: 4px; }
+    .cs-result-card .lbl { font-size: .8rem; color: var(--text-muted); }
+
+    /* Lessons list */
+    .cs-lessons { display: flex; flex-direction: column; gap: 12px; margin: 20px 0; }
+    .cs-lesson {
+      display: flex; gap: 12px; align-items: flex-start;
+      font-size: .925rem; color: var(--text-muted);
+    }
+    .cs-lesson-icon {
+      width: 28px; height: 28px; flex-shrink: 0;
+      background: rgba(0,197,212,.1); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--teal); margin-top: 1px;
+    }
+
+    @media (max-width: 900px) {
+      .cs-body { grid-template-columns: 1fr; }
+      .cs-sidebar { position: static; }
+      .cs-results-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .cs-results-grid { grid-template-columns: 1fr; }
+      .cs-meta-bar { gap: 20px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="site-nav">
+  <div class="container">
+    <div class="nav-inner">
+      <a class="nav-logo" href="index.html">
+        <img src="assets/images/logo/logo-dark.svg" alt="Relay615" />
+      </a>
+      <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="services.html">Services</a>
+        <a href="case-studies.html" class="active">Case Studies</a>
+        <a href="about-us.html">About Us</a>
+        <a href="contact-us.html">Contact</a>
+      </div>
+      <a class="btn btn-primary nav-cta" href="contact-us.html">Get in Touch</a>
+      <button class="nav-hamburger" id="nav-hamburger" aria-label="Menu" aria-expanded="false">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </div>
+  <div class="nav-mobile" id="nav-mobile">
+    <a href="index.html">Home</a>
+    <a href="services.html">Services</a>
+    <a href="case-studies.html">Case Studies</a>
+    <a href="about-us.html">About Us</a>
+    <a href="contact-us.html">Contact</a>
+    <a class="btn btn-primary" href="contact-us.html">Get in Touch</a>
+  </div>
+</nav>
+
+<!-- CASE STUDY HERO -->
+<section class="cs-hero">
+  <div class="container">
+    <div class="cs-hero-content">
+      <div class="breadcrumb">
+        <a href="index.html">Home</a>
+        <span>/</span>
+        <a href="case-studies.html">Case Studies</a>
+        <span>/</span>
+        <span>Healthcare EMR Integration</span>
+      </div>
+      <p style="color:var(--teal);font-size:.8rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;margin-bottom:12px">Healthcare &nbsp;&bull;&nbsp; Phase 1 Complete</p>
+      <h1>EMR-to-Mainframe Integration<br />for a Multi-Hospital Health System</h1>
+      <p class="lead">Phase 1 of a strategic cloud migration: a hybrid BizTalk &amp; Azure architecture that integrated EMR clinical workflows with legacy mainframe and Db2 systems &mdash; while laying the foundation for full Azure modernization in Phase 2.</p>
+      <div class="cs-meta-bar">
+        <div class="cs-meta-item">
+          <span class="cs-meta-label">Industry</span>
+          <span class="cs-meta-value">Healthcare</span>
+        </div>
+        <div class="cs-meta-item">
+          <span class="cs-meta-label">Engagement Type</span>
+          <span class="cs-meta-value">Hybrid Integration / Cloud Migration</span>
+        </div>
+        <div class="cs-meta-item">
+          <span class="cs-meta-label">Standards</span>
+          <span class="cs-meta-value">HL7 v2, Canonical XML</span>
+        </div>
+        <div class="cs-meta-item">
+          <span class="cs-meta-label">Status</span>
+          <span class="cs-meta-value">Phase 1 Delivered &mdash; Phase 2 Planned</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- TAGS STRIP -->
+<div class="cs-tags-strip">
+  <div class="container">
+    <div class="tags">
+      <span class="cs-tag">BizTalk Server</span>
+      <span class="cs-tag">Azure Logic Apps</span>
+      <span class="cs-tag">Azure Functions</span>
+      <span class="cs-tag">Azure Blob Storage</span>
+      <span class="cs-tag">Azure Service Bus</span>
+      <span class="cs-tag">Azure Event Hub</span>
+      <span class="cs-tag">HL7</span>
+      <span class="cs-tag">IBM Db2</span>
+      <span class="cs-tag">SQL Server</span>
+      <span class="cs-tag">ExpressRoute</span>
+      <span class="cs-tag">Hybrid Architecture</span>
+    </div>
+  </div>
+</div>
+
+<!-- BODY -->
+<section class="section">
+  <div class="container">
+    <div class="cs-body">
+
+      <!-- MAIN CONTENT -->
+      <div class="cs-main">
+
+        <!-- Architecture Diagram -->
+        <div class="cs-section">
+          <div class="cs-arch-diagram">
+            <img src="assets/images/casestudies/ehr-mainframe-architecture.png"
+                 alt="Hybrid BizTalk and Azure Integration Architecture"
+                 onerror="this.parentElement.style.display='none'; document.getElementById('arch-fallback').style.display='block'" />
+            <div class="cs-arch-caption">Phase 1 Architecture: Hybrid BizTalk &amp; Azure Integration Pipeline</div>
+          </div>
+          <!-- SVG fallback architecture diagram shown if image not yet uploaded -->
+          <div id="arch-fallback" style="display:none; background:var(--navy); border-radius:var(--radius-lg); padding:32px; margin:28px 0; overflow-x:auto;">
+            <svg viewBox="0 0 900 280" width="100%" xmlns="http://www.w3.org/2000/svg" style="min-width:700px">
+              <!-- Background -->
+              <rect width="900" height="280" fill="#0d1b2a" rx="12"/>
+              <!-- Azure cloud region -->
+              <rect x="200" y="10" width="520" height="260" rx="8" fill="rgba(0,197,212,0.04)" stroke="rgba(0,197,212,0.2)" stroke-width="1" stroke-dasharray="4,3"/>
+              <text x="215" y="28" font-family="Inter, sans-serif" font-size="10" fill="rgba(0,197,212,0.7)" font-weight="600">AZURE CLOUD — VNET</text>
+
+              <!-- On-prem left box -->
+              <rect x="10" y="40" width="130" height="200" rx="6" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+              <text x="75" y="58" font-family="Inter, sans-serif" font-size="9" fill="rgba(255,255,255,0.5)" text-anchor="middle" font-weight="600">ON-PREM</text>
+              <rect x="25" y="66" width="100" height="50" rx="4" fill="rgba(0,197,212,0.12)" stroke="rgba(0,197,212,0.3)" stroke-width="1"/>
+              <text x="75" y="87" font-family="Inter, sans-serif" font-size="9" fill="white" text-anchor="middle" font-weight="600">BizTalk Server</text>
+              <text x="75" y="100" font-family="Inter, sans-serif" font-size="8" fill="rgba(255,255,255,0.5)" text-anchor="middle">HL7 / FTP Ingestion</text>
+              <text x="75" y="111" font-family="Inter, sans-serif" font-size="8" fill="rgba(255,255,255,0.5)" text-anchor="middle">Receive + Validate</text>
+              <rect x="38" y="130" width="74" height="30" rx="4" fill="rgba(255,255,255,0.06)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+              <text x="75" y="148" font-family="Inter, sans-serif" font-size="8" fill="rgba(255,255,255,0.5)" text-anchor="middle">FTP / EMR</text>
+              <text x="75" y="158" font-family="Inter, sans-serif" font-size="7" fill="rgba(255,255,255,0.35)" text-anchor="middle">Source Systems</text>
+
+              <!-- Arrow: BizTalk → Logic App (Decode) -->
+              <line x1="140" y1="91" x2="218" y2="91" stroke="#00c5d4" stroke-width="1.5" marker-end="url(#arr)"/>
+              <text x="179" y="84" font-family="Inter, sans-serif" font-size="7" fill="rgba(0,197,212,0.6)" text-anchor="middle">ExpressRoute</text>
+
+              <!-- Step 2: Logic App Decode -->
+              <rect x="218" y="55" width="110" height="72" rx="6" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+              <text x="273" y="72" font-family="Inter, sans-serif" font-size="8" fill="rgba(255,255,255,0.45)" text-anchor="middle" font-weight="600">STEP 2</text>
+              <text x="273" y="84" font-family="Inter, sans-serif" font-size="9" fill="white" text-anchor="middle" font-weight="700">Decode &amp;</text>
+              <text x="273" y="95" font-family="Inter, sans-serif" font-size="9" fill="white" text-anchor="middle" font-weight="700">Transform</text>
+              <text x="273" y="108" font-family="Inter, sans-serif" font-size="8" fill="rgba(0,197,212,0.8)" text-anchor="middle">Logic App</text>
+              <text x="273" y="118" font-family="Inter, sans-serif" font-size="7" fill="rgba(255,255,255,0.35)" text-anchor="middle">→ Canonical XML</text>
+
+              <!-- Arrow → Blob 1 -->
+              <line x1="328" y1="91" x2="370" y2="91" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" marker-end="url(#arrw)"/>
+
+              <!-- Blob Storage 1 -->
+              <rect x="370" y="65" width="80" height="52" rx="6" fill="rgba(0,197,212,0.08)" stroke="rgba(0,197,212,0.25)" stroke-width="1"/>
+              <text x="410" y="85" font-family="Inter, sans-serif" font-size="8" fill="rgba(0,197,212,0.8)" text-anchor="middle" font-weight="600">CANONICAL</text>
+              <text x="410" y="96" font-family="Inter, sans-serif" font-size="8" fill="rgba(0,197,212,0.8)" text-anchor="middle" font-weight="600">STORE</text>
+              <text x="410" y="108" font-family="Inter, sans-serif" font-size="7" fill="rgba(255,255,255,0.35)" text-anchor="middle">Blob Storage</text>
+
+              <!-- Arrow → Step 3 -->
+              <line x1="450" y1="91" x2="490" y2="91" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" marker-end="url(#arrw)"/>
+
+              <!-- Step 3: Azure Function -->
+              <rect x="490" y="40" width="110" height="100" rx="6" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+              <text x="545" y="57" font-family="Inter, sans-serif" font-size="8" fill="rgba(255,255,255,0.45)" text-anchor="middle" font-weight="600">STEP 3</text>
+              <text x="545" y="69" font-family="Inter, sans-serif" font-size="9" fill="white" text-anchor="middle" font-weight="700">Orchestration</text>
+              <text x="545" y="80" font-family="Inter, sans-serif" font-size="9" fill="white" text-anchor="middle" font-weight="700">&amp; Enrichment</text>
+              <text x="545" y="93" font-family="Inter, sans-serif" font-size="8" fill="rgba(0,197,212,0.8)" text-anchor="middle">Azure Function</text>
+              <text x="545" y="104" font-family="Inter, sans-serif" font-size="7" fill="rgba(255,255,255,0.35)" text-anchor="middle">Rule Engine</text>
+              <text x="545" y="114" font-family="Inter, sans-serif" font-size="7" fill="rgba(255,255,255,0.35)" text-anchor="middle">Db2 Lookup</text>
+              <text x="545" y="124" font-family="Inter, sans-serif" font-size="7" fill="rgba(255,255,255,0.35)" text-anchor="middle">Business Rules</text>
+
+              <!-- Db2 lookup arrow (vertical) -->
+              <line x1="545" y1="140" x2="545" y2="190" stroke="rgba(255,255,255,0.2)" stroke-width="1" stroke-dasharray="3,2" marker-end="url(#arrw)"/>
+              <rect x="495" y="190" width="100" height="36" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+              <text x="545" y="208" font-family="Inter, sans-serif" font-size="8" fill="rgba(255,255,255,0.45)" text-anchor="middle">IBM Db2</text>
+              <text x="545" y="220" font-family="Inter, sans-serif" font-size="7" fill="rgba(255,255,255,0.25)" text-anchor="middle">Lookup / Enrichment</text>
+
+              <!-- Arrow → Blob 2 -->
+              <line x1="600" y1="91" x2="635" y2="91" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" marker-end="url(#arrw)"/>
+
+              <!-- Blob Storage 2 -->
+              <rect x="635" y="65" width="80" height="52" rx="6" fill="rgba(0,197,212,0.08)" stroke="rgba(0,197,212,0.25)" stroke-width="1"/>
+              <text x="675" y="85" font-family="Inter, sans-serif" font-size="8" fill="rgba(0,197,212,0.8)" text-anchor="middle" font-weight="600">ENRICHED</text>
+              <text x="675" y="96" font-family="Inter, sans-serif" font-size="8" fill="rgba(0,197,212,0.8)" text-anchor="middle" font-weight="600">CANONICAL</text>
+              <text x="675" y="108" font-family="Inter, sans-serif" font-size="7" fill="rgba(255,255,255,0.35)" text-anchor="middle">Blob Storage</text>
+
+              <!-- Arrow → Step 4 Logic App -->
+              <line x1="715" y1="91" x2="755" y2="91" stroke="rgba(255,255,255,0.3)" stroke-width="1.5" marker-end="url(#arrw)"/>
+
+              <!-- Step 4: Final Transformation -->
+              <rect x="755" y="55" width="110" height="72" rx="6" fill="rgba(255,255,255,0.05)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+              <text x="810" y="72" font-family="Inter, sans-serif" font-size="8" fill="rgba(255,255,255,0.45)" text-anchor="middle" font-weight="600">STEP 4</text>
+              <text x="810" y="84" font-family="Inter, sans-serif" font-size="9" fill="white" text-anchor="middle" font-weight="700">Final</text>
+              <text x="810" y="95" font-family="Inter, sans-serif" font-size="9" fill="white" text-anchor="middle" font-weight="700">Transform</text>
+              <text x="810" y="108" font-family="Inter, sans-serif" font-size="8" fill="rgba(0,197,212,0.8)" text-anchor="middle">Logic App</text>
+              <text x="810" y="118" font-family="Inter, sans-serif" font-size="7" fill="rgba(255,255,255,0.35)" text-anchor="middle">→ On-Prem SQL</text>
+
+              <!-- Arrow out of Azure to on-prem right -->
+              <line x1="865" y1="91" x2="885" y2="91" stroke="#00c5d4" stroke-width="1.5" marker-end="url(#arr)"/>
+
+              <!-- Observability bar at bottom -->
+              <rect x="215" y="220" width="525" height="32" rx="6" fill="rgba(255,255,255,0.03)" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+              <text x="477" y="233" font-family="Inter, sans-serif" font-size="8" fill="rgba(255,255,255,0.4)" text-anchor="middle" font-weight="600">OBSERVABILITY &amp; GOVERNANCE</text>
+              <text x="477" y="245" font-family="Inter, sans-serif" font-size="7" fill="rgba(255,255,255,0.25)" text-anchor="middle">Azure Monitor &nbsp;·&nbsp; Application Insights &nbsp;·&nbsp; Log Analytics &nbsp;·&nbsp; Key Vault &nbsp;·&nbsp; Alerts &amp; Dashboards</text>
+
+              <!-- Arrow markers -->
+              <defs>
+                <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                  <path d="M0,0 L6,3 L0,6 Z" fill="#00c5d4"/>
+                </marker>
+                <marker id="arrw" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+                  <path d="M0,0 L6,3 L0,6 Z" fill="rgba(255,255,255,0.3)"/>
+                </marker>
+              </defs>
+            </svg>
+            <div style="text-align:center;padding:12px;font-size:.8rem;color:rgba(255,255,255,.35)">Phase 1 Architecture — Hybrid BizTalk &amp; Azure Integration Pipeline</div>
+          </div>
+        </div>
+
+        <!-- BACKGROUND -->
+        <div class="cs-section">
+          <h2>Background</h2>
+          <p>A multi-hospital health system was operating a complex portfolio of clinical integrations built on BizTalk Server over more than a decade. These integrations connected EMR platforms with legacy mainframe systems and IBM Db2 databases &mdash; handling patient admissions, discharge summaries, lab results, and clinical order workflows in HL7 v2 format.</p>
+          <p>As the organization grew through acquisitions and its EMR footprint expanded, the BizTalk environment became a critical bottleneck. Maintaining the aging middleware required scarce on-premise expertise, and the system&rsquo;s monolithic architecture made it difficult to scale individual integration workloads independently.</p>
+          <div class="cs-callout">
+            <p><strong>The mandate was clear:</strong> modernize the integration layer without disrupting clinical operations &mdash; and do it in a way that progressively moved the organization toward the cloud rather than requiring a high-risk big-bang cutover.</p>
+          </div>
+        </div>
+
+        <!-- CHALLENGE -->
+        <div class="cs-section">
+          <h2>The Challenge</h2>
+          <p>Three constraints defined the engagement from day one:</p>
+          <div class="cs-lessons">
+            <div class="cs-lesson">
+              <div class="cs-lesson-icon">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+              </div>
+              <div><strong>Zero downtime tolerance.</strong> The integrations being migrated processed live clinical data 24/7. Any disruption to HL7 message flow carried direct patient safety implications, making a phased, parallel-run approach non-negotiable.</div>
+            </div>
+            <div class="cs-lesson">
+              <div class="cs-lesson-icon">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+              </div>
+              <div><strong>Reuse existing BizTalk maps.</strong> Years of business logic had been encoded in BizTalk maps and orchestrations. Rebuilding everything from scratch in Phase 1 was not feasible &mdash; the architecture had to leverage this investment while setting up a clean migration path.</div>
+            </div>
+            <div class="cs-lesson">
+              <div class="cs-lesson-icon">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+              </div>
+              <div><strong>Legacy back-end systems stay on-premise.</strong> The mainframe and IBM Db2 databases that HL7 messages ultimately needed to reach were not part of this migration scope. The architecture had to bridge cloud processing back to on-prem destinations reliably and securely.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SOLUTION -->
+        <div class="cs-section">
+          <h2>The Solution: A Hybrid Integration Pipeline</h2>
+          <p>Relay615 designed a five-stage hybrid architecture that kept BizTalk in place for what it does well &mdash; ingestion, validation, and existing map execution &mdash; while moving orchestration, rule processing, and enrichment into Azure. This allowed the team to deliver immediate cloud value without requiring a full BizTalk replacement in Phase 1.</p>
+          <p>Secure hybrid connectivity was established via <strong>Azure ExpressRoute</strong> (with a Site-to-Site VPN fallback), creating a private, low-latency path between the on-premise data center and the Azure Virtual Network housing all integration components.</p>
+
+          <div class="cs-arch-steps">
+
+            <div class="cs-arch-step">
+              <div class="cs-step-num">1</div>
+              <div>
+                <h4>Ingestion &mdash; On-Premise BizTalk Server</h4>
+                <p>BizTalk Server continued to handle the intake of HL7 v2 messages from EMR systems via FTP file drops and receive adapters. Existing receive ports, validation pipelines, and BizTalk maps were reused without modification &mdash; preserving years of encoded business logic and minimizing migration risk. BizTalk Management DB retained full orchestration visibility for on-prem operations.</p>
+                <div class="cs-step-tech">
+                  <span class="cs-step-pill dark">BizTalk Server</span>
+                  <span class="cs-step-pill dark">FTP Adapters</span>
+                  <span class="cs-step-pill dark">HL7 Receive Pipelines</span>
+                  <span class="cs-step-pill dark">BizTalk Maps (Reused)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="cs-arch-step">
+              <div class="cs-step-num">2</div>
+              <div>
+                <h4>Decode &amp; Transform &mdash; Azure Logic App</h4>
+                <p>An Azure Logic App (Standard tier) consumed messages forwarded from BizTalk via Event Hub or Blob trigger. It decoded raw HL7 segments, applied existing BizTalk maps through a reuse adapter, and transformed the message into a <strong>Canonical XML</strong> format &mdash; the internal representation that all downstream Azure services would operate on. The canonical document was written to Azure Blob Storage (Hot Tier, RA-GRS).</p>
+                <div class="cs-step-tech">
+                  <span class="cs-step-pill">Azure Logic Apps</span>
+                  <span class="cs-step-pill">Azure Event Hub</span>
+                  <span class="cs-step-pill">Blob Storage (Hot / RA-GRS)</span>
+                  <span class="cs-step-pill dark">BizTalk Map Reuse</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="cs-arch-step">
+              <div class="cs-step-num">3</div>
+              <div>
+                <h4>Orchestration, Rule Engine &amp; Enrichment &mdash; Azure Function</h4>
+                <p>A Blob Created event triggered an Azure Function that acted as the orchestration and enrichment engine. The Function consumed the canonical XML, evaluated it against a configurable rule engine (routing logic, message classification, conditional processing), and performed <strong>lookup calls to on-premise IBM Db2</strong> via a hybrid connection for patient and provider enrichment data. The enriched canonical document was written to a separate Blob Storage container.</p>
+                <div class="cs-step-tech">
+                  <span class="cs-step-pill">Azure Functions</span>
+                  <span class="cs-step-pill">Blob Storage (Enriched)</span>
+                  <span class="cs-step-pill dark">IBM Db2 Lookup</span>
+                  <span class="cs-step-pill dark">Business Rules Engine</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="cs-arch-step">
+              <div class="cs-step-num">4</div>
+              <div>
+                <h4>Final Transformation &amp; Delivery &mdash; Azure Logic App</h4>
+                <p>A second Logic App performed the final transformation from enriched canonical XML into the target format required by each downstream on-premise system. Output was written directly to on-premise SQL Server (via a hybrid connection through the ExpressRoute network), completing the end-to-end flow. Each downstream system received data in its own native format without any modification to its existing interfaces.</p>
+                <div class="cs-step-tech">
+                  <span class="cs-step-pill">Azure Logic Apps</span>
+                  <span class="cs-step-pill dark">SQL Server (On-Prem)</span>
+                  <span class="cs-step-pill dark">Mainframe Output</span>
+                  <span class="cs-step-pill">Azure Hybrid Connection</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="cs-arch-step">
+              <div class="cs-step-num">5</div>
+              <div>
+                <h4>Observability &amp; Governance (Cross-Cutting)</h4>
+                <p>Full end-to-end observability was built in from the start rather than added after go-live. Azure Monitor, Application Insights, and Log Analytics provided unified telemetry across Logic Apps and Azure Functions. Azure Key Vault managed all connection strings, credentials, and shared secrets. Alert rules and dashboards gave operations teams real-time visibility into message throughput, error rates, and processing latency.</p>
+                <div class="cs-step-tech">
+                  <span class="cs-step-pill">Azure Monitor</span>
+                  <span class="cs-step-pill">Application Insights</span>
+                  <span class="cs-step-pill">Log Analytics</span>
+                  <span class="cs-step-pill">Azure Key Vault</span>
+                  <span class="cs-step-pill">Dashboards &amp; Alerts</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- OUTCOMES -->
+        <div class="cs-section">
+          <h2>Outcomes</h2>
+          <div class="cs-results-grid">
+            <div class="cs-result-card">
+              <span class="num">0</span>
+              <span class="lbl">Clinical integration downtime during cutover</span>
+            </div>
+            <div class="cs-result-card">
+              <span class="num">100%</span>
+              <span class="lbl">BizTalk map reuse &mdash; no business logic rewrite</span>
+            </div>
+            <div class="cs-result-card">
+              <span class="num">~60%</span>
+              <span class="lbl">Reduction in BizTalk infrastructure footprint post-Phase 1</span>
+            </div>
+            <div class="cs-result-card">
+              <span class="num">5</span>
+              <span class="lbl">Independent Azure components, each horizontally scalable</span>
+            </div>
+            <div class="cs-result-card">
+              <span class="num">Full</span>
+              <span class="lbl">End-to-end observability from day one</span>
+            </div>
+            <div class="cs-result-card">
+              <span class="num">Phase 2</span>
+              <span class="lbl">Roadmap defined to retire BizTalk entirely</span>
+            </div>
+          </div>
+          <p style="margin-top:20px">The hybrid architecture delivered immediate value by moving orchestration, enrichment, and observability into Azure &mdash; the components with the highest operational burden &mdash; while keeping BizTalk in place as a stable, proven ingestion layer. This approach de-risked Phase 1 significantly and produced a clean, well-documented foundation for Phase 2, which will migrate BizTalk ingestion itself into Azure Logic Apps and retire the on-premise middleware footprint entirely.</p>
+        </div>
+
+        <!-- LESSONS LEARNED -->
+        <div class="cs-section">
+          <h2>Key Design Decisions</h2>
+          <div class="cs-lessons">
+            <div class="cs-lesson">
+              <div class="cs-lesson-icon">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <div><strong>Canonical XML as the lingua franca.</strong> Introducing a canonical document format as the internal standard decoupled sources from destinations. New source or target systems in Phase 2 only need to implement a map to/from canonical &mdash; not a point-to-point integration for every combination.</div>
+            </div>
+            <div class="cs-lesson">
+              <div class="cs-lesson-icon">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <div><strong>Blob Storage as a durable integration bus.</strong> Using Azure Blob Storage between pipeline stages (rather than synchronous chaining) provided natural durability, replay capability, and independent scalability for each stage. A failed Azure Function step can be retried without reprocessing the entire pipeline.</div>
+            </div>
+            <div class="cs-lesson">
+              <div class="cs-lesson-icon">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <div><strong>Separate Logic Apps for transformation vs. delivery.</strong> Splitting Step 2 (decode/transform) and Step 4 (final output) into independent Logic App instances allowed each to scale independently and be tested, updated, or redeployed without touching the other &mdash; a significant advantage over the monolithic BizTalk orchestrations they replaced.</div>
+            </div>
+            <div class="cs-lesson">
+              <div class="cs-lesson-icon">
+                <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7"/></svg>
+              </div>
+              <div><strong>Observability was scoped in, not bolted on.</strong> Application Insights instrumentation and Log Analytics workspaces were provisioned as part of the initial infrastructure, not added in a later sprint. This gave the operations team real monitoring from the first deployment, not just after go-live.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PHASE 2 ROADMAP -->
+        <div class="cs-section">
+          <h2>What&rsquo;s Next: Phase 2 Roadmap</h2>
+          <p>Phase 2 will complete the migration by replacing the on-premise BizTalk ingestion layer with an Azure-native alternative. Key workstreams include:</p>
+          <ul style="margin:16px 0 0 20px; display:flex; flex-direction:column; gap:8px; color:var(--text-muted); font-size:.925rem; list-style:disc;">
+            <li>Migrating BizTalk receive adapters and FTP file drop processing to Azure Logic Apps with Azure File Storage and Event Grid triggers</li>
+            <li>Converting remaining BizTalk orchestrations into Logic App workflows using Relay615&rsquo;s migration playbook</li>
+            <li>Decommissioning BizTalk Server and the associated on-premise infrastructure</li>
+            <li>Extending the rule engine to support additional clinical message types (ADT, ORU, ORM)</li>
+            <li>Evaluating FHIR R4 as a replacement for HL7 v2 on select workflows</li>
+          </ul>
+        </div>
+
+      </div><!-- /cs-main -->
+
+      <!-- SIDEBAR -->
+      <div class="cs-sidebar">
+
+        <div class="cs-sidebar-card">
+          <h4>Engagement Summary</h4>
+          <div class="cs-sidebar-row">
+            <span>Industry</span>
+            <span>Healthcare</span>
+          </div>
+          <div class="cs-sidebar-row">
+            <span>Client</span>
+            <span>Multi-Hospital Health System</span>
+          </div>
+          <div class="cs-sidebar-row">
+            <span>Scope</span>
+            <span>Phase 1 of 2</span>
+          </div>
+          <div class="cs-sidebar-row">
+            <span>Standards</span>
+            <span>HL7 v2, Canonical XML</span>
+          </div>
+          <div class="cs-sidebar-row">
+            <span>Connectivity</span>
+            <span>ExpressRoute + S2S VPN</span>
+          </div>
+          <div class="cs-sidebar-row">
+            <span>Status</span>
+            <span>Delivered &mdash; Phase 2 planned</span>
+          </div>
+        </div>
+
+        <div class="cs-sidebar-card">
+          <h4>Technologies Used</h4>
+          <div class="cs-sidebar-row"><span>Ingestion</span><span>BizTalk Server</span></div>
+          <div class="cs-sidebar-row"><span>Transform</span><span>Azure Logic Apps</span></div>
+          <div class="cs-sidebar-row"><span>Orchestration</span><span>Azure Functions</span></div>
+          <div class="cs-sidebar-row"><span>Storage</span><span>Azure Blob (RA-GRS)</span></div>
+          <div class="cs-sidebar-row"><span>Messaging</span><span>Azure Event Hub</span></div>
+          <div class="cs-sidebar-row"><span>Enrichment</span><span>IBM Db2 (On-Prem)</span></div>
+          <div class="cs-sidebar-row"><span>Output</span><span>SQL Server (On-Prem)</span></div>
+          <div class="cs-sidebar-row"><span>Observability</span><span>App Insights, Monitor</span></div>
+          <div class="cs-sidebar-row"><span>Security</span><span>Azure Key Vault</span></div>
+        </div>
+
+        <div class="cs-sidebar-card" style="background:var(--navy);border-color:transparent">
+          <h4 style="color:var(--teal)">Similar Project?</h4>
+          <p style="font-size:.875rem;color:rgba(255,255,255,.6);margin-bottom:20px">We&rsquo;ve delivered hybrid BizTalk/Azure architectures across healthcare, supply chain, and financial services. Let&rsquo;s talk about your environment.</p>
+          <a class="btn btn-primary" href="contact-us.html" style="width:100%;justify-content:center">
+            Contact Us
+          </a>
+        </div>
+
+      </div><!-- /cs-sidebar -->
+
+    </div><!-- /cs-body -->
+  </div>
+</section>
+
+<!-- BACK TO CASE STUDIES -->
+<div style="background:var(--off-white);padding:40px 0;text-align:center;border-top:1px solid var(--border)">
+  <div class="container">
+    <a class="btn btn-dark" href="case-studies.html">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      All Case Studies
+    </a>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <img src="assets/images/logo/logo-white.svg" alt="Relay615" />
+        <p>Integration and cloud migration specialists. HQ in Tennessee. We modernize BizTalk, EDI, and HL7 environments and move them to the cloud.</p>
+        <div class="footer-social">
+          <a href="#" aria-label="LinkedIn">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+          </a>
+          <a href="#" aria-label="Twitter / X">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+          </a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Services</h4>
+        <div class="footer-links">
+          <a href="services.html">BizTalk Migration</a>
+          <a href="services.html">Azure Integration</a>
+          <a href="services.html">EDI Integration</a>
+          <a href="services.html">HL7 &amp; Healthcare</a>
+          <a href="services.html">API Management</a>
+          <a href="services.html">Cloud Migration</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <div class="footer-links">
+          <a href="about-us.html">About Us</a>
+          <a href="case-studies.html">Case Studies</a>
+          <a href="contact-us.html">Contact</a>
+        </div>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <div class="footer-links">
+          <a href="tel:+16156590920">+1 615-659-0920</a>
+          <a href="mailto:connect@relay615.com">connect@relay615.com</a>
+          <a href="#">Tennessee HQ</a>
+        </div>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span style="color:rgba(255,255,255,.35)">&copy; 2025 Relay615. All rights reserved.</span>
+      <div class="footer-bottom-links"><a href="#">Privacy Policy</a></div>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/js/main.js"></script>
+</body>
+</html>
